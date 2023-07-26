@@ -1,0 +1,45 @@
+@font-face {
+  font-family: 'Quicksand_Light_Oblique';
+  font-style: normal;
+  font-weight: normal;
+  src: local('Quicksand_Light_Oblique'),
+    url('Quicksand_Light_Oblique.woff') format('woff');
+}
+@font-face {
+  font-family: 'Quicksand_Light';
+  font-style: normal;
+  font-weight: normal;
+  src: local('Quicksand_Light'), url('Quicksand_Light.woff') format('woff');
+}
+@font-face {
+  font-family: 'Quicksand_Dash';
+  font-style: normal;
+  font-weight: normal;
+  src: local('Quicksand_Dash'), url('Quicksand_Dash.woff') format('woff');
+}
+@font-face {
+  font-family: 'Quicksand_Book_Oblique';
+  font-style: normal;
+  font-weight: normal;
+  src: local('Quicksand_Book_Oblique'),
+    url('Quicksand_Book_Oblique.woff') format('woff');
+}
+@font-face {
+  font-family: 'Quicksand_Book';
+  font-style: normal;
+  font-weight: normal;
+  src: local('Quicksand_Book'), url('Quicksand_Book.woff') format('woff');
+}
+@font-face {
+  font-family: 'Quicksand_Bold_Oblique';
+  font-style: normal;
+  font-weight: normal;
+  src: local('Quicksand_Bold_Oblique'),
+    url('Quicksand_Bold_Oblique.woff') format('woff');
+}
+@font-face {
+  font-family: 'Quicksand_Bold';
+  font-style: normal;
+  font-weight: normal;
+  src: local('Quicksand_Bold'), url('Quicksand_Bold.woff') format('woff');
+}

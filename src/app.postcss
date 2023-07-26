@@ -1,0 +1,32 @@
+/* Write your global styles here, in PostCSS syntax */
+
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .glasmorphism {
+    @apply rounded-4xl bg-clip-padding backdrop-filter backdrop-blur-xl border border-grey/90;
+  }
+
+  .rounded-4xl {
+    border-radius: 30px;
+  }
+
+  .menuItem {
+    @apply flex w-full items-center rounded-[15px] px-4 py-1.5 font-Quicksand font-light text-lg gap-3 hover:bg-green/10 transition-all duration-200 hover:shadow-inner cursor-pointer;
+  }
+
+  .activeMenuItem {
+    @apply shadow-inner bg-gradient-to-b from-[#18843E]/50 to-[#197B3B]/50;
+  }
+
+  .iconMenuItem {
+    @apply text-[22px] text-white;
+  }
+
+  .playlistItem {
+    @apply flex w-max items-center rounded-[15px] px-4 py-1.5 font-Quicksand font-light text-lg gap-1.5 cursor-pointer hover:text-white/70 duration-100 transition-all;
+  }
+}
