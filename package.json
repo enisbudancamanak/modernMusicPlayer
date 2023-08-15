@@ -26,6 +26,7 @@
   "type": "module",
   "dependencies": {
     "colorthief": "^2.4.0",
+    "gsap": "^3.12.2",
     "moment": "^2.29.4"
   }
 }

@@ -4,33 +4,38 @@
   import ColorThief from 'colorthief'
   import Icon from '@iconify/svelte'
   import moment from 'moment'
-  import { CURRENT_TRACK, CURRENT_STATUS, CURRENT_VOLUME } from '../stores'
+  import gsap from 'gsap'
+  import {
+    CURRENT_TRACK,
+    CURRENT_STATUS,
+    CURRENT_VOLUME,
+    VOLUME__MUTE,
+  } from '../stores'
   import { initPlayer, player } from '../spotifyPlayer/initPlayer'
   import {
     nextSong,
     pauseSong,
     previousSong,
     toggleShuffle,
+    toggleRepeat,
     updateIntervalPosition,
-    getVolume,
+    toggleMute,
+    setVolume,
+    setPosition,
   } from '../spotifyPlayer/controlsPlayer'
 
   let song = null
   let currStatus = null
-
   export let accessToken
 
   $: if (browser) {
     initPlayer(accessToken)
   }
 
-  $: if ($CURRENT_TRACK && $CURRENT_STATUS && player) {
+  $: if ($CURRENT_TRACK || $CURRENT_STATUS) {
     song = $CURRENT_TRACK
     currStatus = $CURRENT_STATUS
-
     setShadow()
-    updateProgress()
-    // getVolume()
   }
 
   let duration, progress, timer, volume
@@ -46,20 +51,12 @@
     setInterval(updateIntervalPosition, 1000)
   })
 
-  function updateProgress() {
-    try {
-      const progressPercent = (currStatus.position / currStatus.duration) * 100
-      progress.style.width = `${progressPercent}%`
-      timer.textContent = formatDuration(currStatus.position)
-    } catch (e) {}
-  }
-
-  $: if ($CURRENT_VOLUME) {
-    try {
-      volume.style.width = `${$CURRENT_VOLUME * 100}%`
-    } catch (e) {}
-  }
-
+  // TODO: Fix constantly updating the shadow of the album cover
+  /**
+   * Set the shadow of the album cover
+   * @returns {void}
+   * @description Get the dominant color of the album cover and set it as the shadow of the album cover
+   */
   function setShadow() {
     try {
       const colorThief = new ColorThief()
@@ -68,16 +65,32 @@
 
       if (img.complete) {
         const color = colorThief.getColor(img)
+
+        gsap.to('#player', {
+          duration: 0.2,
+          ease: 'linear',
+          backgroundImage: `linear-gradient(to right, rgba(
+          ${color[0]},
+          ${color[1]},
+          ${color[2]}, 0.5
+        ), rgba(
+          ${color[0]},
+          ${color[1]},
+          ${color[2]}, 0.05
+        )`,
+        })
+
         wrapper.style[
           'boxShadow'
         ] = `0px 0px 50px rgb(${color[0]} ${color[1]} ${color[2]})`
       } else {
-        image.addEventListener('load', function () {
-          const color = colorThief.getColor(img)
-          wrapper.style[
-            'boxShadow'
-          ] = `0px 0px 50px rgb(${color[0]} ${color[1]} ${color[2]})`
-        })
+        // image.addEventListener('load', function () {
+        //   const color = colorThief.getColor(img)
+        //   // currentShadowColor = rgbToHex(color[0], color[1], color[2])
+        //   wrapper.style[
+        //     'boxShadow'
+        //   ] = `0px 0px 50px rgb(${color[0]} ${color[1]} ${color[2]})`
+        // })
       }
     } catch (e) {}
   }
@@ -93,13 +106,39 @@
       return moment.utc(duration.asMilliseconds()).format('mm:ss')
     }
   }
+
+  function checkRepeatIcon(repeat_mode) {
+    switch (repeat_mode) {
+      case 0:
+        return 'fluent:arrow-repeat-all-off-24-regular'
+        break
+      case 1:
+        return 'fluent:arrow-repeat-all-24-regular'
+        break
+      case 2:
+        return 'fluent:arrow-repeat-1-24-regular'
+        break
+    }
+  }
+
+  function checkVolumeIcon(volume, mute) {
+    if (volume == 0 || mute) return 'fluent:speaker-mute-48-regular'
+    else if (volume > 0 && volume < 0.3) return 'fluent:speaker-0-48-regular'
+    else if (volume >= 0.3 && volume < 0.6) return 'fluent:speaker-1-48-regular'
+    else if (volume >= 0.6 && volume <= 1) return 'fluent:speaker-2-48-regular'
+    else return 'fluent:speaker-1-32-regular'
+  }
+
+  const rgbToHex = (r, g, b) =>
+    '#' + [r, g, b].map((x) => x.toString(16).padStart(2, '0')).join('')
 </script>
 
 <div
+  id="player"
   class:songNotPlaying={!song}
-  class="flex justify-between w-full h-full px-5 overflow-hidden text-black transition-all duration-75 bg-opacity-100 shadow-inner bg-white/70 rounded-4xl shadow-black font-Quicksand"
+  class="flex justify-between w-full h-full px-5 overflow-hidden transition-all duration-75 bg-white bg-opacity-100 shadow-sm text-primary rounded-4xl shadow-primary font-Quicksand"
 >
-  <!-- SONG META -->
+  <!-- LEFT -->
   <div
     style="flex-grow: 1; flex-basis: 0;"
     class="flex items-center h-full gap-5 w-max"
@@ -125,6 +164,7 @@
     {/if}
   </div>
 
+  <!-- CENTER -->
   <div class="flex flex-col items-center justify-center flex-1 h-full gap-2">
     <div class="flex items-center gap-8">
       <button on:mousedown={() => toggleShuffle(accessToken)}>
@@ -132,7 +172,7 @@
           icon={currStatus
             ? currStatus.shuffle
               ? 'fluent:arrow-shuffle-24-regular'
-              : 'fluent:arrow-shuffle-offx-24-regular'
+              : 'fluent:arrow-shuffle-off-24-regular'
             : 'fluent:arrow-shuffle-24-regular'}
           class="w-auto h-6 controls"
         />
@@ -155,90 +195,66 @@
           <Icon icon="fluent:next-24-regular" class="w-auto h-7 controls" />
         </button>
       </div>
-      <Icon
-        icon="fluent:arrow-repeat-all-24-regular"
-        class="w-auto h-6 controls"
-      />
+      <button on:mousedown={() => toggleRepeat(accessToken)}>
+        <Icon
+          icon={currStatus
+            ? checkRepeatIcon(currStatus.repeat_mode)
+            : 'fluent:arrow-repeat-all-off-24-regular'}
+          class="w-auto h-6 controls"
+        />
+      </button>
     </div>
-    <div class="flex items-center justify-center w-full gap-4">
-      <span id="timer">0:00</span>
-      <div id="progress-container">
-        <div id="progress" />
-      </div>
-      <span id="duration">
+    <div class="flex items-center justify-between w-full gap-4">
+      <span class="min-w-[32px]" id="timer"
+        >{currStatus ? formatDuration(currStatus.position) : '0:00'}</span
+      >
+      <input
+        on:change={setPosition}
+        type="range"
+        min="0"
+        max="100"
+        value={currStatus
+          ? (currStatus.position / currStatus.duration) * 100
+          : 0}
+        class="range range-primary bg-[#959894] range-xs shadow-inner shadow-primary"
+      />
+      <span id="duration" class="w-14">
         {currStatus ? formatDuration(currStatus.duration) : '...'}
       </span>
     </div>
   </div>
 
+  <!-- RIGHT -->
   <div
     style="flex-grow: 1; flex-basis: 0;"
     class="flex items-center justify-end h-full gap-2 max-w"
   >
-    <Icon icon={'fluent:speaker-2-48-filled'} class="w-auto h-6 controls" />
-    <div id="volume-container">
-      <input type="range" value="30" min="0" max="100" id="volume" />
-    </div>
+    <button on:mousedown={toggleMute}>
+      <Icon
+        icon={checkVolumeIcon($CURRENT_VOLUME, $VOLUME__MUTE)}
+        class="w-auto h-6 controls"
+      />
+    </button>
+    <input
+      on:change={setVolume}
+      type="range"
+      min="0"
+      max="100"
+      value={$VOLUME__MUTE ? 0 : $CURRENT_VOLUME * 100}
+      class="range range-primary bg-[#959894] range-xs w-32 shadow-inner shadow-primary"
+    />
   </div>
 </div>
 
 <style>
-  #progress-container {
-    height: 4px;
-    width: 100%;
-    background-color: rgba(0, 0, 0, 0.2);
-    cursor: pointer;
-    border-radius: 8px;
-  }
-
-  #progress {
-    background-color: #000;
-    width: 0%;
-    height: inherit;
-    border-radius: inherit;
-    transition: width 100ms ease-in;
-  }
-
-  #volume-container {
-    height: 4px;
-    width: 70px;
-    background-color: rgba(0, 0, 0, 0.2);
-    cursor: pointer;
-    border-radius: 8px;
-  }
-
-  /* #volume {
-    background-color: #000;
-    width: 0%;
-    height: inherit;
-    border-radius: inherit;
-    transition: width 100ms ease-in;
-  } */
-
-  #volume {
-    appearance: none;
-    width: 30px;
-    height: 4px;
-    border-radius: 8px;
-    outline: none;
-    transition: 0.2s;
-    cursor: pointer;
-    background: black;
-    overflow: hidden;
-  }
-
-  #volume::-webkit-slider-thumb {
-    appearance: none;
-    visibility: hidden;
-  }
-
-  /* #volume:hover {
-    height: 1em;
-  } */
-
   .songNotPlaying {
     pointer-events: none;
     color: rgb(170, 170, 170);
     background-color: rgba(255 255 255 / 0.4);
+  }
+
+  .range::-webkit-slider-runnable-track {
+    width: 100%;
+    background-color: transparent;
   }
 </style>

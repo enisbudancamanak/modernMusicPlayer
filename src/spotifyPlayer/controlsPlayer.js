@@ -1,6 +1,13 @@
 import { player } from './initPlayer'
-import { CURRENT_STATUS, DEVICE_ID, CURRENT_VOLUME } from '../stores'
+import {
+  CURRENT_STATUS,
+  DEVICE_ID,
+  CURRENT_VOLUME,
+  VOLUME__MUTE,
+} from '../stores'
 import { get } from 'svelte/store'
+
+const REPEAT_MODE_ENUMS = ['off', 'context', 'track']
 
 export function nextSong() {
   player.nextTrack()
@@ -14,9 +21,17 @@ export function pauseSong() {
   player.togglePlay()
 }
 
-export function setVolume(volume) {
+export function toggleMute() {
+  VOLUME__MUTE.set(!get(VOLUME__MUTE))
+  if (get(VOLUME__MUTE)) player.setVolume(0)
+  else player.setVolume(get(CURRENT_VOLUME))
+}
+
+export function setVolume(e) {
+  if (e.target.value > 0 && get(VOLUME__MUTE)) VOLUME__MUTE.set(false)
+  const volume = !get(VOLUME__MUTE) ? e.target.value / 100 : 0
   player.setVolume(volume).then(() => {
-    console.log('Volume updated!')
+    CURRENT_VOLUME.set(volume)
   })
 }
 
@@ -26,9 +41,42 @@ export async function getVolume() {
   })
 }
 
-export async function setRepeat(option, device_id, accessToken) {
+export function setPosition(e) {
+  const newPosition = (e.target.value / 100) * get(CURRENT_STATUS).duration
+  player.seek(newPosition).then(() => {
+    console.log('Changed position!')
+  })
+}
+
+export async function startSong(context_uri, position_offset, accessToken) {
+  await fetch(`https://api.spotify.com/v1/me/player/play`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({
+      context_uri: context_uri,
+      offset: {
+        position: position_offset,
+      },
+      position_ms: 0,
+    }),
+  }).then(() => {
+    return true
+  })
+}
+
+export async function toggleRepeat(accessToken) {
+  const currState = get(CURRENT_STATUS)
+  if (currState.repeat_mode >= 0 && currState.repeat_mode < 2)
+    currState.repeat_mode += 1
+  else currState.repeat_mode = 0
+
   await fetch(
-    `https://api.spotify.com/v1/me/player/repeat?state=${option}&device_id=${device_id}`,
+    `https://api.spotify.com/v1/me/player/repeat?state=${
+      REPEAT_MODE_ENUMS[currState.repeat_mode]
+    }&device_id=${get(DEVICE_ID)}`,
     {
       method: 'PUT',
       headers: {
@@ -56,13 +104,6 @@ export async function toggleShuffle(accessToken) {
     }
   ).then(() => {
     return true
-  })
-}
-
-export function changePosition() {
-  player.seek(60 * 1000).then(() => {
-    //minute
-    console.log('Changed position!')
   })
 }
 

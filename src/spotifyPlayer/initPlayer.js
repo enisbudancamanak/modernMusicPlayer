@@ -20,17 +20,30 @@ export function initPlayer(accessToken) {
       console.log('Device ID has gone offline', device_id)
     })
 
+    player.addListener('initialization_error', ({ message }) => {
+      console.error(message)
+    })
+
+    player.addListener('authentication_error', ({ message }) => {
+      console.error(message)
+    })
+
+    player.addListener('account_error', ({ message }) => {
+      console.error(message)
+    })
+
     player.addListener('player_state_changed', (state) => {
-      CURRENT_TRACK.set(state.track_window.current_track)
-      console.log(state)
-      // @ts-ignore
-      CURRENT_STATUS.set({
-        paused: state.paused,
-        position: state.position,
-        shuffle: state.shuffle,
-        duration: state.duration,
-        updateTime: performance.now(),
-      })
+      try {
+        CURRENT_TRACK.set(state.track_window.current_track)
+        // @ts-ignore
+        CURRENT_STATUS.set({
+          paused: state.paused,
+          position: state.position,
+          shuffle: state.shuffle,
+          duration: state.duration,
+          repeat_mode: state.repeat_mode,
+        })
+      } catch (e) {}
     })
 
     player.connect()
